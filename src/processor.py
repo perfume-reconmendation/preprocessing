@@ -7,6 +7,7 @@ from multiprocessing import Pool
 import re
 import pandas as pd
 import json
+from datetime import datetime
 
 
 def convert_to_str(doc):
@@ -96,7 +97,7 @@ def preprocess_df(df: pd.DataFrame, col_name='review', stopwords=_stopwords):
     s = df['only_english'] = s.map(lambda words: map(trim, [except_non_english(pattern, w) for w in words]))
     s = df['longer_than_2_A'] = s.map(lambda words: [w for w in words if len(w) > 2])
     s = df['stopwords_removed'] = s.map(lambda words: remove_stopwords(words, stopwords))
-    s = df['orthography'] = s.map(lambda words: map(correction, words))
+    # s = df['orthography'] = s.map(lambda words: map(correction, words))
     s = df['lemmatizated'] = s.map(lambda words: lemmatize_with_pos(words))\
         .map(lambda words: [w for w in words if len(w) > 2])
     return df
@@ -104,7 +105,7 @@ def preprocess_df(df: pd.DataFrame, col_name='review', stopwords=_stopwords):
 
 
 if __name__ == '__main__':
-    cores = 16
+    cores = 14
     df = pd.read_csv('../dataset/top_90_by_gender.csv')
 
     batch_n = int(len(df['review']) / cores)
@@ -116,6 +117,8 @@ if __name__ == '__main__':
     with Pool(cores) as p:
         batches_return = p.map(preprocess_df, batches)
 
-    result = pd.concat(batches_return, axis=1)
-    result.to_csv('../output/preprocessed_orth.csv')
+    result = pd.concat(batches_return)
+
+    time_str = datetime.now().strftime("%y%m%d_%H%M%S")
+    result.to_csv(f'../output/preprocessed_{time_str}.csv')
 
